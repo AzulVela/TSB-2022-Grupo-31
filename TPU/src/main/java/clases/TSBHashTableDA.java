@@ -13,7 +13,7 @@ import java.util.*;
  * @param <K> el tipo de los objetos que serán usados como clave en la tabla.
  * @param <V> el tipo de los objetos que serán los valores de la tabla.
  */
-public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
+public class TSBHashTableDA<K,V> implements Map<K,V>, Cloneable, Serializable
 {
     //************************ Constantes (privadas o públicas).
 
@@ -25,7 +25,8 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     //************************ Atributos privados (estructurales).
 
     // la tabla hash: el arreglo que contiene todos los objetos...
-    private Map.Entry<K, V> table[]; //sabri
+    // private Map.Entry<K, V> table[]; //sabri
+    private Object table[];
 
     // el tamaño inicial de la tabla (tamaño con el que fue creada)...
     private int initial_capacity;
@@ -64,7 +65,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * Crea una tabla vacía, con la capacidad inicial igual a 11 y con factor 
      * de carga igual a 0.5f (que equivale a un nivel de carga del 50%).
      */    
-    public TSBHashtableDA()
+    public TSBHashTableDA()
     {
         this(11, 0.5f);
     }
@@ -74,7 +75,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * de carga igual a 0.5f (que equivale a un nivel de carga del 50%).
      * @param initial_capacity la capacidad inicial de la tabla.
      */    
-    public TSBHashtableDA(int initial_capacity)
+    public TSBHashTableDA(int initial_capacity)
     {
         this(initial_capacity, 0.5f);
     }
@@ -89,7 +90,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * @param initial_capacity la capacidad inicial de la tabla.
      * @param load_factor el factor de carga de la tabla.
      */
-    public TSBHashtableDA(int initial_capacity, float load_factor)
+    public TSBHashTableDA(int initial_capacity, float load_factor)
     {
         if(load_factor <= 0 || load_factor > 0.5) { load_factor = 0.5f; }
         if(initial_capacity <= 0) { initial_capacity = 11; }
@@ -101,7 +102,8 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
             }
         }
         
-        this.table = new Map.Entry[initial_capacity]; //sabri
+        //this.table = new Map.Entry[initial_capacity]; //sabri
+        this.table = new Object[initial_capacity];
         for(int i=0; i<table.length; i++)
         {
             table[i] = new Entry<K, V>(null, null);
@@ -117,7 +119,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * Crea una tabla a partir del contenido del Map especificado.
      * @param t el Map a partir del cual se creará la tabla.
      */     
-    public TSBHashtableDA(Map<? extends K,? extends V> t)
+    public TSBHashTableDA(Map<? extends K,? extends V> t)
     {
         this(11, 0.5f);
         this.putAll(t);
@@ -209,6 +211,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     @Override
     public V put(K key, V value) 
     {
+
        if(key == null || value == null) throw new NullPointerException("put(): parámetro null");
        
        int ik = this.h(key);
@@ -242,9 +245,15 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      *         estaba en la tabla.
      * @throws NullPointerException - if the key is null.
      */
+    //@Override
+    //public V remove(Object key)
+    //@Override
+    public boolean remove(Object key, Object value) {
+        return this.remove(key)!=null;
+    }
+
     @Override
-    public V remove(Object key)
-    {
+    public V remove(Object key){
         if(key == null)
             throw new NullPointerException("remove(): parámetro null");
 
@@ -260,7 +269,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
             count--;
             modCount++;
         }
-        return old;
+        return (V) old;
     }
 
     /**
@@ -273,13 +282,16 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     @Override
     public void putAll(Map<? extends K, ? extends V> m)
     {
+
         if (m == null)
         {
             throw new NullPointerException("El parámetro no puede ser null");
         }
         for(Map.Entry<? extends K, ? extends V> e : m.entrySet())
         {
-            put(e.getKey(), e.getValue());
+            if(e!=null) {
+                put(e.getKey(), e.getValue());
+            }
         }
     }
 
@@ -398,16 +410,25 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      *         interface Cloneable.    
      */ 
     @Override
-    protected Object clone() throws CloneNotSupportedException 
+    protected Object clone() //throws CloneNotSupportedException
     {
-        TSBHashtableDA<K, V> t = (TSBHashtableDA<K, V>)super.clone();
-        t.table = new Map.Entry[this.table.length];
-        t.putAll(this);
-        t.keySet = null;
-        t.entrySet = null;
-        t.values = null;
-        t.modCount = 0;
-        return t;
+        try {
+            TSBHashTableDA<K, V> t = (TSBHashTableDA<K, V>) super.clone();
+            t.table = new Map.Entry[this.table.length];
+            //t.putAll(this);
+            for (int i = 0; i < table.length; i++) {
+                t.table[i] = (Entry<K, V>) table[i];
+            }
+            t.keySet = null;
+            t.entrySet = null;
+            t.values = null;
+            t.modCount = 0;
+            return t;
+        }
+        catch(CloneNotSupportedException exception){
+            exception.printStackTrace();
+        }
+        return null;
     }
 /*
     /**
@@ -431,10 +452,11 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 Map.Entry<K, V> e = i.next();
                 K key = e.getKey();
                 V value = e.getValue();
+                // hash
                 if(t.get(key) == null) { return false; }
                 else 
                 {
-                    if(!value.equals(t.get(key))) { return false; }
+                    if(!value.equals(t.get(key))) { return false; } //agregar comparación de hashcode
                 }
             }
         } 
@@ -498,12 +520,25 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     
     //************************ Métodos específicos de la clase.
 
+
     /**
      * Determina si alguna clave de la tabla está asociada al objeto value que
      * entra como parámetro. Equivale a containsValue().
      * @param value el objeto a buscar en la tabla.
      * @return true si alguna clave está asociada efectivamente a ese value.
      */
+
+    public boolean contains(Object value) {
+        if(value == null) return false;
+
+        for (int i = 0; i < this.table.length; i++)
+        {
+            Entry<K, V> entry = (Entry<K, V>) this.table[i];
+            if(value.equals(entry.getValue()) && entry.getState()==CLOSED) return true;
+        }
+        return false;
+    }
+    /*
     public boolean contains(Object value)
     {
         if (value == null)
@@ -515,11 +550,35 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
         while(i.hasNext())
         {
             Map.Entry<K, V> e = i.next();
+            if(e!=null){
             V val = e.getValue();
-            if(val.equals(value)) return true;
+            if(val.equals(value)) return true;}
         }
         return false;
     }
+    /*
+    @Override
+    public boolean contains(Object o)
+    {
+        if(o == null) { return false; }
+        if(!((Entry) o instanceof Entry)) { return false; }
+
+        Entry<K, V> entry = (Entry<K,V>)o;
+        K key = entry.getKey();
+        Object t[] = TSBHashTableDA.this.table;
+
+        for (int i = 0; i < t.length; i++) {
+            Entry<K, V> x = (Entry<K,V>)t[i];
+            if (key.equals(x.getKey())) {
+                if (x.estado == 1) {
+                    return false;
+                } else {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }*/
     
     /**
      * Incrementa el tamaño de la tabla y reorganiza su contenido. Se invoca 
@@ -768,7 +827,8 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
             
             final Entry other = (Entry) obj;
             if (!Objects.equals(this.key, other.key)) { return false; }
-            if (!Objects.equals(this.value, other.value)) { return false; }            
+            if (!Objects.equals(this.value, other.value)) { return false; }
+            if (this.hashCode() != other.hashCode()) { return false; } // check
             return true;
         }       
         
@@ -800,25 +860,25 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
         @Override
         public int size() 
         {
-            return TSBHashtableDA.this.count;
+            return TSBHashTableDA.this.count;
         }
         
         @Override
         public boolean contains(Object o) 
         {
-            return TSBHashtableDA.this.containsKey(o);
+            return TSBHashTableDA.this.containsKey(o);
         }
         
         @Override
         public boolean remove(Object o) 
         {
-            return (TSBHashtableDA.this.remove(o) != null);
+            return (TSBHashTableDA.this.remove(o) != null);
         }
         
         @Override
         public void clear() 
         {
-            TSBHashtableDA.this.clear();
+            TSBHashTableDA.this.clear();
         }
         
         private class KeySetIterator implements Iterator<K>
@@ -839,7 +899,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
             {
                 // HACER...
                 next_ok = false;
-                expected_modCount = TSBHashtableDA.this.modCount;
+                expected_modCount = TSBHashTableDA.this.modCount;
             }
 
             /*
@@ -862,7 +922,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 // REVISAR Y HACER...
 
                 // control: fail-fast iterator...
-                if(TSBHashtableDA.this.modCount != expected_modCount)
+                if(TSBHashTableDA.this.modCount != expected_modCount)
                 {    
                     throw new ConcurrentModificationException("next(): modificación inesperada de tabla...");
                 }
@@ -899,10 +959,10 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 next_ok = false;
                                 
                 // la tabla tiene un elementon menos...
-                TSBHashtableDA.this.count--;
+                TSBHashTableDA.this.count--;
 
                 // fail_fast iterator...
-                TSBHashtableDA.this.modCount++;
+                TSBHashTableDA.this.modCount++;
                 expected_modCount++;
             }     
         }
@@ -958,13 +1018,13 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
         @Override
         public int size() 
         {
-            return TSBHashtableDA.this.count;
+            return TSBHashTableDA.this.count;
         }
 
         @Override
         public void clear() 
         {
-            TSBHashtableDA.this.clear();
+            TSBHashTableDA.this.clear();
         }
         
         private class EntrySetIterator implements Iterator<Map.Entry<K, V>>
@@ -986,7 +1046,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 // HACER...
 
                 next_ok = false;
-                expected_modCount = TSBHashtableDA.this.modCount;
+                expected_modCount = TSBHashTableDA.this.modCount;
             }
 
             /*
@@ -1010,7 +1070,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 //HACER...
 
                 // control: fail-fast iterator...
-                if(TSBHashtableDA.this.modCount != expected_modCount)
+                if(TSBHashTableDA.this.modCount != expected_modCount)
                 {    
                     throw new ConcurrentModificationException("next(): modificación inesperada de tabla...");
                 }
@@ -1049,10 +1109,10 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 next_ok = false;
                                 
                 // la tabla tiene un elementon menos...
-                TSBHashtableDA.this.count--;
+                TSBHashTableDA.this.count--;
 
                 // fail_fast iterator...
-                TSBHashtableDA.this.modCount++;
+                TSBHashTableDA.this.modCount++;
                 expected_modCount++;
             }     
         }
@@ -1079,19 +1139,19 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
         @Override
         public int size() 
         {
-            return TSBHashtableDA.this.count;
+            return TSBHashTableDA.this.count;
         }
         
         @Override
         public boolean contains(Object o) 
         {
-            return TSBHashtableDA.this.containsValue(o);
+            return TSBHashTableDA.this.containsValue(o);
         }
         
         @Override
         public void clear() 
         {
-            TSBHashtableDA.this.clear();
+            TSBHashTableDA.this.clear();
         }
         
         private class ValueCollectionIterator implements Iterator<V>
@@ -1113,7 +1173,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 // HACER...
 
                 next_ok = false;
-                expected_modCount = TSBHashtableDA.this.modCount;
+                expected_modCount = TSBHashTableDA.this.modCount;
             }
 
             /*
@@ -1137,7 +1197,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 // HACER...
 
                 // control: fail-fast iterator...
-                if(TSBHashtableDA.this.modCount != expected_modCount)
+                if(TSBHashTableDA.this.modCount != expected_modCount)
                 {    
                     throw new ConcurrentModificationException("next(): modificación inesperada de tabla...");
                 }
@@ -1177,10 +1237,10 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
                 next_ok = false;
                                 
                 // la tabla tiene un elementon menos...
-                TSBHashtableDA.this.count--;
+                TSBHashTableDA.this.count--;
 
                 // fail_fast iterator...
-                TSBHashtableDA.this.modCount++;
+                TSBHashTableDA.this.modCount++;
                 expected_modCount++;
             }     
         }
