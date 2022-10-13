@@ -25,7 +25,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     //************************ Atributos privados (estructurales).
 
     // la tabla hash: el arreglo que contiene todos los objetos...
-    private Object table[];
+    private Map.Entry<K, V> table[]; //sabri
 
     // el tamaño inicial de la tabla (tamaño con el que fue creada)...
     private int initial_capacity;
@@ -101,7 +101,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
             }
         }
         
-        this.table = new Object[initial_capacity];
+        this.table = new Map.Entry[initial_capacity]; //sabri
         for(int i=0; i<table.length; i++)
         {
             table[i] = new Entry<K, V>(null, null);
@@ -181,11 +181,16 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      *         tabla.
      */
     @Override
-    public V get(Object key) 
+    public V get(Object key) throws ClassCastException, NullPointerException
     {
-        // HACER...
-        if(key == null) throw new NullPointerException("get(): parámetro null");
-       
+        if(key == null)
+            throw new NullPointerException("get(): parámetro null");
+
+        int mi = this.h((K) key);
+
+        Map.Entry<K,V> aux = search_for_entry((K) key, mi);
+        if (aux != null)
+            return aux.getValue();
         return null;
     }
 
@@ -238,12 +243,24 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * @throws NullPointerException - if the key is null.
      */
     @Override
-    public V remove(Object key) 
+    public V remove(Object key)
     {
-        // HACER...
-        if(key == null) throw new NullPointerException("remove(): parámetro null");
+        if(key == null)
+            throw new NullPointerException("remove(): parámetro null");
 
-        return null;
+        int mi = this.h((K) key);
+        V old = null;
+
+        int pos  = search_for_index((K) key, mi);
+        if (pos != -1)
+        {
+            Entry<K,V> aux = ((Entry)table[pos]);
+            old = aux.getValue();
+            ((Entry)table[pos]).setState(TOMBSTONE);
+            count--;
+            modCount++;
+        }
+        return old;
     }
 
     /**
@@ -254,8 +271,12 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * @throws NullPointerException si m es null.
      */
     @Override
-    public void putAll(Map<? extends K, ? extends V> m) 
+    public void putAll(Map<? extends K, ? extends V> m)
     {
+        if (m == null)
+        {
+            throw new NullPointerException("El parámetro no puede ser null");
+        }
         for(Map.Entry<? extends K, ? extends V> e : m.entrySet())
         {
             put(e.getKey(), e.getValue());
@@ -268,10 +289,15 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * inicialmente tuvo al ser creado el objeto.
      */
     @Override
-    public void clear() 
+    public void clear()
     {
-        // HACER... obvio...
-
+        this.table = new Map.Entry[initial_capacity];
+        for(int i=0; i<table.length; i++)
+        {
+            table[i] = new Entry<K, V>(null, null);
+        }
+        this.count = 0;
+        this.modCount = 0;
     }
 
     /**
@@ -374,12 +400,16 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
     @Override
     protected Object clone() throws CloneNotSupportedException 
     {
-        // HACER...
         TSBHashtableDA<K, V> t = (TSBHashtableDA<K, V>)super.clone();
-
+        t.table = new Map.Entry[this.table.length];
+        t.putAll(this);
+        t.keySet = null;
+        t.entrySet = null;
+        t.values = null;
+        t.modCount = 0;
         return t;
     }
-
+/*
     /**
      * Determina si esta tabla es igual al objeto especificado.
      * @param obj el objeto a comparar con esta tabla.
@@ -421,6 +451,7 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      * Retorna un hash code para la tabla completa.
      * @return un hash code para la tabla.
      */
+    /*
     @Override
     public int hashCode() 
     {
@@ -428,7 +459,20 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
         int hc = super.hashCode();
         return hc;
     }
-    
+*/
+    @Override
+    public int hashCode()
+    {
+        int h = 0;
+        Iterator<Map.Entry<K,V>> i = this.entrySet().iterator();
+        while(i.hasNext())
+        {
+            h += i.next().hashCode();
+        }
+        return h;
+    }
+
+
     /**
      * Devuelve el contenido de la tabla en forma de String.
      * @return una cadena con el contenido completo de la tabla.
@@ -462,9 +506,18 @@ public class TSBHashtableDA<K,V> implements Map<K,V>, Cloneable, Serializable
      */
     public boolean contains(Object value)
     {
-        // HACER...
-        if(value == null) return false;
-        
+        if (value == null)
+        {
+            throw new NullPointerException("El parametro no puede ser null.");
+        }
+
+        Iterator<Map.Entry<K,V>> i = this.entrySet().iterator();
+        while(i.hasNext())
+        {
+            Map.Entry<K, V> e = i.next();
+            V val = e.getValue();
+            if(val.equals(value)) return true;
+        }
         return false;
     }
     
